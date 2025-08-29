@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coding Knowledge Ultra Final</title>
+<style>
+body{
+  margin:0; font-family:Arial,sans-serif; background:#0f172a; color:white; overflow-x:hidden; transition:background 0.5s, color 0.5s;
+}
+#particles{position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:0;}
+#welcome{position:fixed; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:1; text-align:center;}
+#welcome h1{font-size:2.5em;}
+#welcome p{opacity:0; transition:1s;}
+#btnLanjut{padding:16px 28px; font-size:20px; border:none; border-radius:12px; background:#38bdf8; color:white; cursor:pointer; opacity:0; transform:translateY(30px); transition:all 0.6s;}
+#btnLanjut.show{opacity:1; transform:translateY(0);}
+#btnLanjut:hover{background:#0ea5e9;}
+#content{display:none; padding:20px; max-width:1200px; margin:auto;}
+.cards{display:flex; flex-wrap:wrap; gap:20px; justify-content:center;}
+.card{background:rgba(30,41,59,0.85); padding:20px; border-radius:12px; width:250px; opacity:0; transform:translateY(50px) scale(0.9); transition:all 0.6s; box-shadow:0 0 0 rgba(56,189,248,0);}
+.card.visible{opacity:1; transform:translateY(0) scale(1); box-shadow:0 0 20px rgba(56,189,248,0.5);}
+.card:hover{box-shadow:0 0 30px rgba(56,189,248,0.8); transform:translateY(-5px) scale(1.02);}
+.readBtn{margin-top:10px; padding:8px 16px; border:none; border-radius:8px; background:#38bdf8; color:white; cursor:pointer;}
+.readBtn:hover{background:#0ea5e9;}
+.more{max-height:0; overflow:hidden; transition:max-height 0.5s, padding 0.5s;}
+.card.expanded .more{max-height:200px; padding:10px;}
+textarea{width:100%; height:150px; background:#0f172a; color:white; padding:10px; border-radius:8px; border:1px solid #38bdf8; resize:none;}
+iframe{width:100%; height:200px; border:1px solid #38bdf8; border-radius:8px; margin-top:10px;}
+#filterButtons{margin:20px 0; text-align:center;}
+.filterBtn{padding:8px 16px; border:none; border-radius:8px; margin:0 5px; cursor:pointer; background:#38bdf8; color:white;}
+.filterBtn:hover{background:#0ea5e9;}
+.filterBtn.active{background:#0ea5e9;}
+#modeToggle{position:fixed; top:20px; right:20px; padding:10px; border:none; border-radius:8px; background:#38bdf8; color:white; cursor:pointer;}
+#progressBar{position:fixed; top:0; left:0; height:5px; background:#38bdf8; width:0%; transition:width 0.2s;}
+
+/* Tombol Snake besar */
+#snakeControls button {
+  width: 60px;
+  height: 60px;
+  font-size: 30px;
+  margin: 5px;
+  border-radius: 12px;
+  background: #38bdf8;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+#snakeControls button:hover { background: #0ea5e9; }
+
+/* Fireworks particle */
+.firework{
+  position:absolute; width:5px; height:5px; border-radius:50%; pointer-events:none; z-index:5;
+}
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+
+<div id="welcome">
+  <h1 id="welcomeText"></h1>
+  <p id="welcomeSub">Klik Lanjut Dibawah Ini!</p>
+  <button id="btnLanjut">Lanjut</button>
+</div>
+
+<button id="modeToggle">🌙</button>
+<div id="progressBar"></div>
+
+<div id="content">
+  <h1>📚 Dunia Coding</h1>
+  <div id="filterButtons">
+    <button class="filterBtn active" data-cat="All">All</button>
+    <button class="filterBtn" data-cat="Frontend">Frontend</button>
+    <button class="filterBtn" data-cat="Backend">Backend</button>
+    <button class="filterBtn" data-cat="Database">Database</button>
+  </div>
+  <div class="cards" id="cardsContainer"></div>
+
+  <div id="playground">
+    <h2>🖥️ Mini Playground</h2>
+    <textarea id="codeEditor"><!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Contoh Dasar HTML</title>
+</head>
+<body>
+  <h1>Selamat Datang di Dunia HTML</h1>
+  <p>Ini adalah contoh dasar html (untuk menjalankan kode dasar html, masukkan "!" lalu klik "tab" kedalam terminal kamu.</p>
+  <ul>
+    <li>Belajar HTML</li>
+    <li>Hapus Kode ini, lalu ketik "AZZAM" untuk easter egg</li>
+  </ul>
+</body>
+</html></textarea>
+    <button id="runCode">Run Code</button>
+    <iframe id="result"></iframe>
+    <div id="easterBtnContainer" style="margin-top:10px;"></div>
+  </div>
+
+  <h3>🐍 Mini Snake Game</h3>
+  <canvas id="snakeGame" width="300" height="300" style="border:1px solid #38bdf8; background:#0f172a; display:block; margin:10px auto;"></canvas>
+  <p>Gunakan tombol panah ↑ ↓ ← → atau tombol di bawah!</p>
+  <div id="snakeControls" style="text-align:center; margin-top:10px;">
+    <button onclick="setDir('UP')">↑</button><br>
+    <button onclick="setDir('LEFT')">←</button>
+    <button onclick="setDir('DOWN')">↓</button>
+    <button onclick="setDir('RIGHT')">→</button>
+  </div>
+</div>
+
+<script>
+// PARTICLE BACKGROUND
+const canvas=document.getElementById('particles');
+const ctx=canvas.getContext('2d');
+let w=canvas.width=window.innerWidth;
+let h=canvas.height=window.innerHeight;
+window.addEventListener('resize',()=>{w=canvas.width=window.innerWidth; h=canvas.height=window.innerHeight;});
+let particles=[];
+for(let i=0;i<100;i++){particles.push({x:Math.random()*w,y:Math.random()*h,r:Math.random()*2+1,dx:(Math.random()-0.5)*0.5,dy:(Math.random()-0.5)*0.5});}
+function animate(){ctx.clearRect(0,0,w,h);particles.forEach(p=>{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle="rgba(255,255,255,0.7)";ctx.fill();p.x+=p.dx;p.y+=p.dy;if(p.x<0||p.x>w)p.dx*=-1;if(p.y<0||p.y>h)p.dy*=-1;});requestAnimationFrame(animate);}
+animate();
+
+// WELCOME TYPING
+const welcomeText="Welcome to Web Tester 🚀";
+let i=0;
+const welcomeH1=document.getElementById("welcomeText");
+const welcomeSub=document.getElementById("welcomeSub");
+const btn=document.getElementById("btnLanjut");
+function typeWriter(){if(i<welcomeText.length){welcomeH1.innerHTML+=welcomeText.charAt(i);i++;setTimeout(typeWriter,80);}else{welcomeSub.style.opacity=1;btn.classList.add("show");}}
+typeWriter();
+
+// CONTENT CARDS
+const cardData=[
+  {name:"HTML",desc:"Struktur web",code:"<h1>Hello</h1>",cat:"Frontend", link:"https://developer.mozilla.org/en-US/docs/Web/HTML"},
+  {name:"CSS",desc:"Style halaman",code:"body{background:#f0f0f0;}",cat:"Frontend", link:"https://developer.mozilla.org/en-US/docs/Web/CSS"},
+  {name:"JS",desc:"Interaktif web",code:"alert('Hi');",cat:"Frontend", link:"https://developer.mozilla.org/en-US/docs/Web/JavaScript"},
+  {name:"Python",desc:"Backend/AI",code:"print('Hi')",cat:"Backend", link:"https://www.python.org/doc/"},
+  {name:"Java",desc:"Aplikasi",code:"System.out.println('Hi');",cat:"Backend", link:"https://docs.oracle.com/en/java/"},
+  {name:"C++",desc:"Performa tinggi",code:"#include <iostream>\nint main(){std::cout<<'Hi';}",cat:"Backend", link:"https://www.cplusplus.com/doc/"},
+  {name:"SQL",desc:"Database",code:"SELECT * FROM users;",cat:"Database", link:"https://www.w3schools.com/sql/"}
+];
+
+const cardsContainer=document.getElementById("cardsContainer");
+
+function createCards(filter="All"){
+  cardsContainer.innerHTML="";
+  cardData.forEach(d=>{
+    if(filter==="All" || d.cat===filter){
+      const card=document.createElement("div");
+      card.className="card";
+      card.innerHTML=`
+        <h2>${d.name}</h2>
+        <p>${d.desc}</p>
+        <pre>${d.code}</pre>
+        <div class="more">
+          <a href="${d.link}" target="_blank">Penjelasan Lengkap ${d.name}</a>
+        </div>
+        <button class="readBtn">Read More</button>
+      `;
+      cardsContainer.appendChild(card);
+    }
+  });
+  // Animasi fade-in
+  document.querySelectorAll(".card").forEach((c,i)=>setTimeout(()=>c.classList.add("visible"),i*200));
+}
+
+createCards();
+
+// Lanjut tombol
+btn.addEventListener('click',()=>{document.getElementById("welcome").style.display="none";document.getElementById("content").style.display="block";});
+
+// Read More
+document.addEventListener('click',e=>{if(e.target.classList.contains('readBtn')){const card=e.target.parentElement;card.classList.toggle('expanded');e.target.textContent=card.classList.contains('expanded')?'Read Less':'Read More';}});
+
+// Playground
+document.getElementById("runCode").addEventListener("click", ()=>{
+  const code=document.getElementById("codeEditor").value;
+  document.getElementById("result").srcdoc=code;
+
+  // Cek kode rahasia untuk Easter Egg
+  if(code.trim().toUpperCase()==="AZZAM"){
+    const container=document.getElementById("easterBtnContainer");
+    container.innerHTML='<button id="easterEggBtn">🎉 EASTER EGG!</button>';
+
+    document.getElementById("easterEggBtn").addEventListener("click", ()=>{
+      alert("🎉 WOWOWOWOOOW, YOU GOT IT🚀");
+      alert("🎉 I just want to say, if God gives me more opportunities and strength, I choose to take care of you, even though I am not who you are🚀");
+      container.innerHTML=""; // tombol hilang setelah diklik
+    });
+  }
+});
+
+// Dark/Light mode
+let dark=true;
+document.getElementById("modeToggle").addEventListener('click',()=>{
+  dark=!dark;
+  if(dark){
+    document.body.style.background="#0f172a";
+    document.body.style.color="white";
+    document.getElementById("modeToggle").textContent="🌙";
+  }else{
+    document.body.style.background="#f0f0f0";
+    document.body.style.color="black";
+    document.getElementById("modeToggle").textContent="☀️";
+  }
+});
+
+// Filter
+document.querySelectorAll(".filterBtn").forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll(".filterBtn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    createCards(btn.dataset.cat);
+  });
+});
+
+// Scroll progress
+window.addEventListener('scroll',()=>{
+  const scrollTop=document.documentElement.scrollTop;
+  const scrollHeight=document.documentElement.scrollHeight-document.documentElement.clientHeight;
+  document.getElementById("progressBar").style.width=(scrollTop/scrollHeight*100)+"%";
+});
+
+// --- MINI SNAKE GAME ---
+const canvasSnake = document.getElementById("snakeGame");
+const ctxSnake = canvasSnake.getContext("2d");
+const box = 15;
+let snake = [{x:5*box,y:5*box},{x:4*box,y:5*box},{x:3*box,y:5*box}];
+let food = {x:Math.floor(Math.random()*canvasSnake.width/box)*box, y:Math.floor(Math.random()*canvasSnake.height/box)*box};
+let d; 
+let score=0;
+let gameStarted=false;
+
+// Keyboard controls Snake
+document.addEventListener("keydown", (event) => {
+  // Jangan jalankan Snake jika Playground fokus
+  if(document.activeElement===document.getElementById("codeEditor")) return;
+
+  if(!gameStarted) gameStarted=true;
+  if(event.keyCode==37 && d!="RIGHT") d="LEFT";
+  if(event.keyCode==38 && d!="DOWN") d="UP";
+  if(event.keyCode==39 && d!="LEFT") d="RIGHT";
+  if(event.keyCode==40 && d!="UP") d="DOWN";
+});
+
+// On-screen buttons
+function setDir(dir){
+  if(!gameStarted) gameStarted=true;
+  if(dir=="LEFT" && d!="RIGHT") d="LEFT";
+  if(dir=="UP" && d!="DOWN") d="UP";
+  if(dir=="RIGHT" && d!="LEFT") d="RIGHT";
+  if(dir=="DOWN" && d!="UP") d="DOWN";
+}
+
+// Fireworks particle
+let fireworks=[];
+function createFirework(x,y){
+  for(let i=0;i<20;i++){
+    fireworks.push({x:x,y:y,dx:(Math.random()-0.5)*4,dy:(Math.random()-0.5)*4,life:20});
+  }
+}
+function drawFireworks(){
+  for(let i=fireworks.length-1;i>=0;i--){
+    let f=fireworks[i];
+    ctxSnake.fillStyle=`hsl(${Math.random()*360},100%,50%)`;
+    ctxSnake.fillRect(f.x,f.y,3,3);
+    f.x+=f.dx;
+    f.y+=f.dy;
+    f.life--;
+    if(f.life<=0) fireworks.splice(i,1);
+  }
+}
+
+// Draw snake & food
+function drawSnake(){
+  ctxSnake.clearRect(0,0,canvasSnake.width,canvasSnake.height);
+  drawFireworks();
+  ctxSnake.fillStyle="#38bdf8";
+  ctxSnake.fillRect(food.x, food.y, box, box);
+  for(let i=0;i<snake.length;i++){
+    ctxSnake.fillStyle=i==0?"#0ea5e9":"#38bdf8";
+    ctxSnake.fillRect(snake[i].x, snake[i].y, box, box);
+  }
+
+  if(!gameStarted) return;
+
+  let snakeX = snake[0].x;
+  let snakeY = snake[0].y;
+
+  if(d=="LEFT") snakeX-=box;
+  if(d=="UP") snakeY-=box;
+  if(d=="RIGHT") snakeX+=box;
+  if(d=="DOWN") snakeY+=box;
+
+  if(snakeX<0||snakeY<0||snakeX>=canvasSnake.width||snakeY>=canvasSnake.height || collision(snakeX,snakeY,snake)){
+    alert("Game Over! Skor: "+score);
+    snake = [{x:5*box,y:5*box},{x:4*box,y:5*box},{x:3*box,y:5*box}];
+    d=undefined;
+    score=0;
+    food={x:Math.floor(Math.random()*canvasSnake.width/box)*box, y:Math.floor(Math.random()*canvasSnake.height/box)*box};
+    gameStarted=false;
+    fireworks=[];
+    return;
+  }
+
+  if(snakeX==food.x && snakeY==food.y){
+    score++;
+    createFirework(food.x+box/2, food.y+box/2);
+    food={x:Math.floor(Math.random()*canvasSnake.width/box)*box, y:Math.floor(Math.random()*canvasSnake.height/box)*box};
+  } else {
+    snake.pop();
+  }
+
+  snake.unshift({x:snakeX, y:snakeY});
+}
+
+// Collision check
+function collision(x,y,array){
+  for(let i=0;i<array.length;i++){
+    if(array[i].x==x && array[i].y==y) return true;
+  }
+  return false;
+}
+
+// Game loop
+function gameLoop(){
+  drawSnake();
+}
+setInterval(gameLoop,100);
+
+// --- EASTER EGG "C-O-D-E" ---
+let inputSeq="";
+document.addEventListener('keydown',(e)=>{
+  inputSeq+=e.key.toUpperCase();
+  if(inputSeq.endsWith("CODE")){
+    alert("🎉 Easter Egg! Really? You got it! 🚀");
+    inputSeq="";
+  }
+});
+</script>
+</body>
+</html>
